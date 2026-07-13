@@ -12,7 +12,8 @@
       "Bash(npx tsc *)",
       "Bash(npm run *)",
       "Bash(mkdir -p /Users/user/Documents/REACT_CODE/berea-int/.claude)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
