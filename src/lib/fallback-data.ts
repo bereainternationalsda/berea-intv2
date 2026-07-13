@@ -8,7 +8,7 @@ export type CardItem = {
   slug: string;
   description?: string;
   icon?: string;
-  image?: null;
+  image?: { asset?: { _ref: string } } | null;
 };
 
 export const fallbackSections: CardItem[] = [

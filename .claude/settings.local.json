@@ -13,7 +13,10 @@
       "Bash(npm run *)",
       "Bash(mkdir -p /Users/user/Documents/REACT_CODE/berea-int/.claude)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(ps -p 55617 -o pid,ppid,command)",
+      "Bash(kill 55617)"
     ]
   }
 }
