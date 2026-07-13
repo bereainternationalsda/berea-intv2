@@ -1,0 +1,85 @@
+<svg viewBox="0 0 1920 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of a church at dusk">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1a30" />
+      <stop offset="55%" stop-color="#122c50" />
+      <stop offset="100%" stop-color="#274b7d" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="45%">
+      <stop offset="0%" stop-color="#f4f6fa" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#f4f6fa" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1a30" />
+      <stop offset="100%" stop-color="#060f1c" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="900" fill="url(#sky)" />
+  <rect width="1920" height="900" fill="url(#glow)" />
+
+  <!-- stars -->
+  <g fill="#f4f6fa" opacity="0.6">
+    <circle cx="180" cy="120" r="2" />
+    <circle cx="320" cy="200" r="1.5" />
+    <circle cx="480" cy="90" r="2" />
+    <circle cx="1500" cy="140" r="2" />
+    <circle cx="1650" cy="230" r="1.5" />
+    <circle cx="1750" cy="100" r="2" />
+    <circle cx="900" cy="70" r="1.5" />
+    <circle cx="1100" cy="150" r="1.5" />
+  </g>
+
+  <!-- distant hills -->
+  <path d="M0,650 Q480,580 960,640 T1920,630 V900 H0 Z" fill="#16325c" opacity="0.6" />
+
+  <!-- ground -->
+  <rect x="0" y="760" width="1920" height="140" fill="url(#ground)" />
+
+  <!-- trees -->
+  <g fill="#0b1a30">
+    <ellipse cx="260" cy="700" rx="70" ry="90" />
+    <rect x="248" y="760" width="24" height="60" />
+    <ellipse cx="1660" cy="700" rx="70" ry="90" />
+    <rect x="1648" y="760" width="24" height="60" />
+  </g>
+
+  <!-- church building -->
+  <g>
+    <!-- side wings -->
+    <rect x="620" y="600" width="200" height="180" fill="#0b1a30" />
+    <rect x="1100" y="600" width="200" height="180" fill="#0b1a30" />
+
+    <!-- main hall -->
+    <rect x="780" y="500" width="360" height="280" fill="#122c50" />
+    <polygon points="780,500 960,380 1140,500" fill="#0b1a30" />
+
+    <!-- steeple base -->
+    <rect x="925" y="260" width="70" height="240" fill="#122c50" />
+    <polygon points="925,260 960,180 995,260" fill="#0b1a30" />
+
+    <!-- spire -->
+    <rect x="954" y="120" width="12" height="70" fill="#0b1a30" />
+
+    <!-- cross -->
+    <g stroke="#f4f6fa" stroke-width="6" stroke-linecap="round">
+      <line x1="960" y1="70" x2="960" y2="120" />
+      <line x1="942" y1="88" x2="978" y2="88" />
+    </g>
+
+    <!-- rose window -->
+    <circle cx="960" cy="560" r="34" fill="#f4f6fa" opacity="0.85" />
+    <circle cx="960" cy="560" r="34" fill="none" stroke="#0b1a30" stroke-width="4" />
+
+    <!-- entrance -->
+    <path d="M910,780 v-70 a50,50 0 0 1 100,0 v70 Z" fill="#060f1c" />
+
+    <!-- side windows -->
+    <g fill="#f4f6fa" opacity="0.75">
+      <rect x="660" y="640" width="26" height="60" rx="13" />
+      <rect x="754" y="640" width="26" height="60" rx="13" />
+      <rect x="1140" y="640" width="26" height="60" rx="13" />
+      <rect x="1234" y="640" width="26" height="60" rx="13" />
+    </g>
+  </g>
+</svg>

@@ -3,7 +3,16 @@
     "allow": [
       "Bash(npm -v)",
       "Read(//Users/user/Documents/REACT_CODE/**)",
-      "Bash(npx --yes create-next-app@latest berea-int --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)"
+      "Bash(npx --yes create-next-app@latest berea-int --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npm install *)",
+      "Bash(npm ls *)",
+      "Bash(mkdir -p /Users/user/Documents/REACT_CODE/berea-int/src/sanity/schemaTypes /Users/user/Documents/REACT_CODE/berea-int/src/components /Users/user/Documents/REACT_CODE/berea-int/src/lib /Users/user/Documents/REACT_CODE/berea-int/src/app/departments /Users/user/Documents/REACT_CODE/berea-int/src/app/services /Users/user/Documents/REACT_CODE/berea-int/src/app/resources /Users/user/Documents/REACT_CODE/berea-int/src/app/studio/'[[...tool]]' /Users/user/Documents/REACT_CODE/berea-int/public/images /Users/user/Documents/REACT_CODE/berea-int/scripts)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('sanity/package.json'\\).exports\\).filter\\(k=>k.includes\\('structure'\\)\\)\\)\")",
+      "Bash(node -e \"const s=require\\('sanity'\\); console.log\\(typeof s.defineType, typeof s.defineField\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(mkdir -p /Users/user/Documents/REACT_CODE/berea-int/.claude)",
+      "Bash(git add *)"
     ]
   }
 }

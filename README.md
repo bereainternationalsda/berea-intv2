@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Berea Seventh-day Adventist Church — Website
+
+Next.js (App Router) + Tailwind CSS + Framer Motion, with Sanity as the
+content management system so non-developers can edit cards and pages without
+touching code.
+
+## Stack
+
+- **Next.js 16** (TypeScript, App Router)
+- **Tailwind CSS v4** for styling (navy/white theme matching gc.adventist.org)
+- **Framer Motion** for the 3D tilt-on-hover cards
+- **Sanity** as a headless CMS, embedded directly at `/studio` (no separate
+  deployment needed)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The site runs out of the
+box using built-in placeholder content (`src/lib/fallback-data.ts`) even
+before Sanity is configured, so you can see the homepage, Departments page,
+and ministry cards immediately.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Connecting the CMS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Log in and create a Sanity project:
+   ```bash
+   npx sanity login
+   npx sanity init
+   ```
+   When asked, choose "Create new project," pick the `production` dataset,
+   and say no to a default schema (this repo already has one).
 
-## Learn More
+2. Copy the env template and fill in your project ID:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+   Set `NEXT_PUBLIC_SANITY_PROJECT_ID` to the ID printed by `sanity init`.
 
-To learn more about Next.js, take a look at the following resources:
+3. Restart the dev server. The site now reads from your live Sanity dataset
+   instead of the placeholder data (falling back automatically if a query
+   returns nothing).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Visit `http://localhost:3000/studio` and log in with the same Sanity
+   account to add/edit content directly — no separate CMS deployment.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Content model
 
-## Deploy on Vercel
+- **Homepage Section** (`section`) — the 3 hero cards (Departments, Services,
+  Resources). Each has a `slug` that becomes its page route.
+- **Ministry** (`ministry`) — the sub-page cards (Pathfinders, Adventurers,
+  Family Life, Ambassador, Children's Ministries, Adventist Community
+  Services, etc.). Each references a parent `Homepage Section`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Optional: seed starter content via script
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Instead of typing everything into the Studio by hand, you can push the same
+starter content (3 sections + 6 ministries) programmatically:
+
+1. Create an API token with **Editor** permissions at
+   [sanity.io/manage](https://sanity.io/manage) → your project → API → Tokens.
+2. Add it to `.env.local` as `SANITY_API_WRITE_TOKEN`.
+3. Run:
+   ```bash
+   node --env-file=.env.local scripts/seed.mjs
+   ```
+
+## Replacing the hero image
+
+The hero currently uses an original placeholder illustration at
+`public/images/hero-church.svg`. Swap in a real photo of your church by
+replacing that file path in `src/components/Hero.tsx` with your own image
+(e.g. `public/images/hero-church.jpg`).
+
+## Project structure
+
+```
+src/
+  app/
+    (site)/            # marketing pages, wrapped in Header + Footer
+      page.tsx          # homepage: hero + 3 section cards
+      departments/      # ministry cards + [slug] detail pages
+      services/
+      resources/
+    studio/[[...tool]]/ # embedded Sanity Studio at /studio
+  components/           # Header, Footer, Hero, Card3D, CardGrid
+  lib/                  # content fetching + fallback data
+  sanity/               # client, schemas, queries, env
+```
+
+## Deploying
+
+Deploy to [Vercel](https://vercel.com/new) — set the same environment
+variables from `.env.local` in the project's dashboard settings.
