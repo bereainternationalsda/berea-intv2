@@ -11,6 +11,21 @@ export type CardItem = {
   image?: { asset?: { _ref: string } } | null;
 };
 
+export type SiteSettings = {
+  heroEyebrow?: string;
+  heroHeadline: string;
+  heroSubtitle?: string;
+  heroImage?: { asset?: { _ref: string } } | null;
+};
+
+export const fallbackSiteSettings: SiteSettings = {
+  heroEyebrow: "Welcome Home",
+  heroHeadline: "Berea Seventh-day Adventist Church",
+  heroSubtitle:
+    "A place to worship, grow, and belong. Join our family as we discover freedom, healing, and hope in Jesus Christ together.",
+  heroImage: null,
+};
+
 export const fallbackSections: CardItem[] = [
   {
     _id: "fallback-departments",

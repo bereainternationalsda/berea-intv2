@@ -1,11 +1,28 @@
 import { client } from "@/sanity/client";
-import { ministriesBySectionSlugQuery, sectionsQuery } from "@/sanity/queries";
+import {
+  ministriesBySectionSlugQuery,
+  sectionsQuery,
+  siteSettingsQuery,
+} from "@/sanity/queries";
 import { isSanityConfigured } from "@/sanity/env";
 import {
   fallbackMinistries,
   fallbackSections,
+  fallbackSiteSettings,
   type CardItem,
+  type SiteSettings,
 } from "@/lib/fallback-data";
+
+export async function getSiteSettings(): Promise<SiteSettings> {
+  if (!isSanityConfigured) return fallbackSiteSettings;
+
+  try {
+    const settings = await client.fetch<SiteSettings | null>(siteSettingsQuery);
+    return settings ?? fallbackSiteSettings;
+  } catch {
+    return fallbackSiteSettings;
+  }
+}
 
 export async function getSections(): Promise<CardItem[]> {
   if (!isSanityConfigured) return fallbackSections;

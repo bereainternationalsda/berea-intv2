@@ -1,5 +1,14 @@
 import { groq } from "next-sanity";
 
+export const siteSettingsQuery = groq`
+  *[_type == "siteSettings"][0] {
+    heroEyebrow,
+    heroHeadline,
+    heroSubtitle,
+    heroImage
+  }
+`;
+
 export const sectionsQuery = groq`
   *[_type == "section"] | order(order asc) {
     _id,

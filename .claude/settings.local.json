@@ -16,7 +16,12 @@
       "Bash(git commit -m ' *)",
       "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
       "Bash(ps -p 55617 -o pid,ppid,command)",
-      "Bash(kill 55617)"
+      "Bash(kill 55617)",
+      "Bash(ps -p 59042 -o pid,ppid,command)",
+      "Bash(kill 59042)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Read(//Users/user/**)"
     ]
   }
 }

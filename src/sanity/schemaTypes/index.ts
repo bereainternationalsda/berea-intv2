@@ -1,4 +1,5 @@
 import { section } from "./section";
 import { ministry } from "./ministry";
+import { siteSettings } from "./siteSettings";
 
-export const schemaTypes = [section, ministry];
+export const schemaTypes = [siteSettings, section, ministry];

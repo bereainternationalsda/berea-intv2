@@ -26,6 +26,15 @@ const client = createClient({
   useCdn: false,
 });
 
+const siteSettings = {
+  _id: "siteSettings",
+  _type: "siteSettings",
+  heroEyebrow: "Welcome Home",
+  heroHeadline: "Berea Seventh-day Adventist Church",
+  heroSubtitle:
+    "A place to worship, grow, and belong. Join our family as we discover freedom, healing, and hope in Jesus Christ together.",
+};
+
 const sections = [
   {
     _id: "section-departments",
@@ -80,12 +89,14 @@ const ministries = [
 async function seed() {
   const transaction = client.transaction();
 
-  for (const doc of [...sections, ...ministries]) {
+  for (const doc of [siteSettings, ...sections, ...ministries]) {
     transaction.createOrReplace(doc);
   }
 
   await transaction.commit();
-  console.log(`Seeded ${sections.length} sections and ${ministries.length} ministries.`);
+  console.log(
+    `Seeded site settings, ${sections.length} sections, and ${ministries.length} ministries.`,
+  );
 }
 
 seed().catch((error) => {

@@ -48,6 +48,9 @@ and ministry cards immediately.
 
 ### Content model
 
+- **Site Settings** (`siteSettings`) — a singleton document controlling the
+  homepage hero: image, eyebrow text, headline, and subtitle. Only one of
+  these exists; the Studio prevents creating a second one.
 - **Homepage Section** (`section`) — the 3 hero cards (Departments, Services,
   Resources). Each has a `slug` that becomes its page route.
 - **Ministry** (`ministry`) — the sub-page cards (Pathfinders, Adventurers,
@@ -57,7 +60,7 @@ and ministry cards immediately.
 ### Optional: seed starter content via script
 
 Instead of typing everything into the Studio by hand, you can push the same
-starter content (3 sections + 6 ministries) programmatically:
+starter content (site settings + 3 sections + 6 ministries) programmatically:
 
 1. Create an API token with **Editor** permissions at
    [sanity.io/manage](https://sanity.io/manage) → your project → API → Tokens.
@@ -69,10 +72,11 @@ starter content (3 sections + 6 ministries) programmatically:
 
 ## Replacing the hero image
 
-The hero currently uses an original placeholder illustration at
-`public/images/hero-church.svg`. Swap in a real photo of your church by
-replacing that file path in `src/components/Hero.tsx` with your own image
-(e.g. `public/images/hero-church.jpg`).
+Once Sanity is connected, go to `/studio` → **Site Settings** → upload an
+image to **Hero Image** → Publish. It appears on the homepage immediately,
+no code changes needed. Until an image is uploaded there, the homepage falls
+back to the original placeholder illustration at
+`public/images/hero-church.svg`.
 
 ## Project structure
 
