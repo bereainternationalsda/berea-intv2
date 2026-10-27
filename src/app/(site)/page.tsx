@@ -1,5 +1,6 @@
 import { Hero } from "@/components/Hero";
 import { CardGrid } from "@/components/CardGrid";
+import { UpcomingEvents } from "@/components/UpcomingEvents";
 import { getSections, getSiteSettings } from "@/lib/content";
 
 // Re-render at most once a minute so content edits show up without a redeploy.
@@ -19,6 +20,8 @@ export default async function HomePage() {
         subtitle={siteSettings.heroSubtitle}
         imageUrl={siteSettings.heroImageUrl}
       />
+
+      <UpcomingEvents />
 
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">

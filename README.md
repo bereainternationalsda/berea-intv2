@@ -47,11 +47,39 @@ Go to **`/admin`** and sign in with an allowed Google account.
 | Site settings | Homepage hero photo, small heading, main heading, subtitle |
 | Section cards | The big homepage cards (Departments, Services, Resources) |
 | Ministry cards | Cards inside each section (Pathfinders, Adventurers, …): add, edit, reorder, move between sections, delete |
+| Events | Camps, trainings and other programs: poster, dates, venue, costs, contact, and when to show them |
 
 Changes appear on the live site within seconds. Photos are resized in the browser
 before upload (max 5 MB; JPG, PNG or WebP).
 
 To give someone access, add their Google email to `ADMIN_EMAILS` and redeploy.
+
+### Events
+
+Events appear as a row of up to 3 cards under the homepage hero (only when there is
+at least one), on `/events`, and on their own page at `/events/{slug}`.
+
+**When an event shows.** All dates are South African dates (Africa/Johannesburg), so
+events appear and expire at midnight in Johannesburg wherever the server runs.
+
+| Setting | Effect |
+| --- | --- |
+| Published (unticked = draft) | Drafts are visible to nobody but admins |
+| Start promoting on | First day the event is listed. Blank = straight away |
+| Stop promoting after | Last day it is listed. Blank = the event's own last day |
+
+- An event's own page opens as soon as it is published and past its start-promoting
+  date. After the event ends the page stays reachable (so old shared links work) and
+  says "This event has ended"; it just leaves the lists.
+- "Stop promoting after" only removes the card from the lists, not the page.
+- The rules live in `src/lib/events/dates.ts`. Run `npm test` to check them; the
+  tests run under three different server time zones to prove the dates don't depend
+  on where the site is hosted.
+
+**Share previews.** Event pages carry Open Graph tags so WhatsApp/Facebook show the
+poster. Messaging apps skip very large images, so the preview uses a resized copy,
+which needs the site's public address: set `NEXT_PUBLIC_SITE_URL` (picked up
+automatically on Vercel).
 
 ### Security model
 
@@ -69,6 +97,7 @@ To give someone access, add their Google email to `ADMIN_EMAILS` and redeploy.
 | `siteSettings/main` | `heroHeadline`, `heroEyebrow`, `heroSubtitle`, `heroImageUrl` |
 | `sections/{slug}` | `title`, `description`, `icon`, `imageUrl`, `order` |
 | `ministries/{slug}` | `title`, `slug`, `description`, `icon`, `imageUrl`, `order`, `sectionSlug` |
+| `events/{slug}` | `title`, `slug`, `summary`, `description`, `imageUrl`, `startDate`, `startTime`, `endDate`, `endTime`, `venue`, `costs`, `contactName`, `contactPhone`, `published`, `showFrom`, `showUntil` |
 
 A ministry appears on the page of the section whose `slug` equals its `sectionSlug`
 (e.g. `departments` → `/departments`, with its own page at `/departments/{slug}`).
@@ -82,6 +111,7 @@ src/
       page.tsx                 # homepage: hero + section cards
       departments/ services/ resources/   # section listing pages
       [section]/[slug]/        # card detail pages, e.g. /departments/pathfinders
+      events/ events/[slug]/   # event list and event pages
     admin/
       login/                   # Google sign-in
       (panel)/                 # signed-in screens + Server Actions (actions.ts)
@@ -92,6 +122,8 @@ src/
     fallback-data.ts
     firebase/                # admin.ts (server), client.ts (browser sign-in)
     admin/                   # auth, data access, storage, validation
+    events/                  # dates.ts (rules), content.ts (reads), types.ts
+    site-url.ts              # public address, for share previews
 ```
 
 ## Deploying (e.g. Vercel)

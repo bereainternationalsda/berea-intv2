@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --no-warnings --test src/lib/events/dates.test.mjs && TZ=America/Los_Angeles node --no-warnings --test src/lib/events/dates.test.mjs && TZ=Pacific/Auckland node --no-warnings --test src/lib/events/dates.test.mjs"
   },
   "dependencies": {
     "firebase": "^13.1.0",

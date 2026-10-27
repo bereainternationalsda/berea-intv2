@@ -47,7 +47,7 @@ type TextFieldProps = {
   hint?: string;
   error?: string;
   maxLength?: number;
-  type?: "text" | "number";
+  type?: "text" | "number" | "date" | "time";
   placeholder?: string;
   readOnly?: boolean;
   required?: boolean;
@@ -162,6 +162,44 @@ export function SelectField({
         ))}
       </select>
     </FieldShell>
+  );
+}
+
+export function CheckboxField({
+  name,
+  label,
+  hint,
+  checked,
+  onChange,
+  resetKey,
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  /**
+   * Change this after each form submission. Like <select>, a checkbox resets to
+   * the state it *mounted* with (not later clicks) after a form action, so it is
+   * uncontrolled (`defaultChecked`) and remounted with the current value.
+   */
+  resetKey?: string | number;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <input
+        key={resetKey}
+        type="checkbox"
+        name={name}
+        defaultChecked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-navy-100"
+      />
+      <span>
+        <span className="block text-sm font-semibold text-navy-900">{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-navy-700/70">{hint}</span>}
+      </span>
+    </label>
   );
 }
 

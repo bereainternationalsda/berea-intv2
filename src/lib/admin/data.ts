@@ -4,6 +4,9 @@ import { getDb } from "@/lib/firebase/admin";
 import { fallbackSiteSettings, type SiteSettings } from "@/lib/fallback-data";
 import type { AdminCard } from "@/lib/admin/types";
 import { SLUG_RE } from "@/lib/admin/validation";
+import { toEventItem } from "@/lib/events/content";
+import { byStartDate } from "@/lib/events/dates";
+import type { EventItem } from "@/lib/events/types";
 
 // Data access layer for /admin. Each function re-checks the session itself
 // rather than trusting the page that called it.
@@ -59,4 +62,18 @@ export async function getAdminMinistry(slug: string): Promise<AdminCard | null> 
   if (!SLUG_RE.test(slug)) return null;
   const snapshot = await getDb().collection("ministries").doc(slug).get();
   return snapshot.exists ? toAdminCard(snapshot) : null;
+}
+
+/** Every event, including drafts and scheduled ones, soonest first. */
+export async function getAdminEvents(): Promise<EventItem[]> {
+  await requireAdmin();
+  const snapshot = await getDb().collection("events").get();
+  return snapshot.docs.map(toEventItem).sort(byStartDate);
+}
+
+export async function getAdminEvent(slug: string): Promise<EventItem | null> {
+  await requireAdmin();
+  if (!SLUG_RE.test(slug)) return null;
+  const snapshot = await getDb().collection("events").doc(slug).get();
+  return snapshot.exists ? toEventItem(snapshot) : null;
 }

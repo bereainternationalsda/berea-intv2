@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/PageHeader";
-import { getAdminMinistries, getAdminSections } from "@/lib/admin/data";
+import {
+  getAdminEvents,
+  getAdminMinistries,
+  getAdminSections,
+} from "@/lib/admin/data";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
-  const [sections, ministries] = await Promise.all([
+  const [sections, ministries, events] = await Promise.all([
     getAdminSections(),
     getAdminMinistries(),
+    getAdminEvents(),
   ]);
 
   const tiles = [
@@ -26,6 +31,14 @@ export default async function AdminDashboardPage() {
       title: "Ministry cards",
       body: `The ${ministries.length} cards inside each section, like Pathfinders and Adventurers.`,
     },
+    {
+      href: "/admin/events",
+      title: "Events",
+      body:
+        events.length === 0
+          ? "Camps, trainings and other programs to promote. None yet."
+          : `Camps, trainings and other programs to promote. ${events.length} so far.`,
+    },
   ];
 
   return (
@@ -35,7 +48,7 @@ export default async function AdminDashboardPage() {
         description="Changes go live on the website within a few seconds of saving."
       />
 
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((tile) => (
           <Link
             key={tile.href}

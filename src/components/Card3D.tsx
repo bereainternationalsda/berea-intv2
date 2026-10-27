@@ -11,6 +11,14 @@ type Card3DProps = {
   icon?: string;
   imageUrl?: string;
   index?: number;
+  /** Small line above the title, e.g. an event's dates. */
+  eyebrow?: string;
+  /** Pill shown over the image, e.g. "Happening now". */
+  badge?: string;
+  /** Small line under the description, e.g. an event's venue. */
+  footnote?: string;
+  /** Text of the button; defaults to "Read More". */
+  ctaLabel?: string;
 };
 
 function useTilt() {
@@ -42,6 +50,10 @@ export function Card3D({
   icon,
   imageUrl,
   index = 0,
+  eyebrow,
+  badge,
+  footnote,
+  ctaLabel = "Read More",
 }: Card3DProps) {
   const { rotateX, rotateY, handleMouseMove, handleMouseLeave } = useTilt();
 
@@ -83,25 +95,40 @@ export function Card3D({
                 </span>
               )
             )}
+            {badge && (
+              <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-bold uppercase tracking-wide text-navy-800 shadow">
+                {badge}
+              </span>
+            )}
           </div>
 
           <div
             style={{ transform: "translateZ(20px)", transformStyle: "preserve-3d" }}
             className="flex flex-1 flex-col p-7"
           >
+            {eyebrow && (
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-navy-600">
+                {eyebrow}
+              </p>
+            )}
             <h3 className="font-serif text-xl font-bold text-navy-900 underline decoration-2 underline-offset-4">
               {title}
             </h3>
-            {description && (
-              <p className="mt-4 flex-1 text-sm leading-relaxed text-navy-700/80">
-                {description}
-              </p>
+            {(description || footnote) && (
+              <div className="mt-4 flex-1">
+                {description && (
+                  <p className="text-sm leading-relaxed text-navy-700/80">{description}</p>
+                )}
+                {footnote && (
+                  <p className="mt-3 text-xs font-semibold text-navy-700">{footnote}</p>
+                )}
+              </div>
             )}
             <span className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-navy-800 px-5 py-2 text-xs font-bold uppercase tracking-wide text-navy-800 transition-colors group-hover:bg-navy-800 group-hover:text-white">
               <span className="transition-transform group-hover:translate-x-1">
                 &rarr;
               </span>
-              Read More
+              {ctaLabel}
             </span>
           </div>
         </Link>

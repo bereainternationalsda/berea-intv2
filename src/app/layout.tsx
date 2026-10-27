@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Merriweather, Inter } from "next/font/google";
 import "./globals.css";
+import { getSiteUrl } from "@/lib/site-url";
 
 const heading = Merriweather({
   variable: "--font-heading",
@@ -13,7 +14,11 @@ const body = Inter({
   subsets: ["latin"],
 });
 
+// Needed so share previews (WhatsApp, Facebook) get absolute image links.
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
+  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
   title: "Berea International SDA Church",
   description:
     "Welcome to Berea International Seventh-day Adventist Church — join us for worship, ministry, and community.",

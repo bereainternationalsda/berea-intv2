@@ -8,6 +8,7 @@ const links = [
   { href: "/admin/settings", label: "Site settings" },
   { href: "/admin/sections", label: "Section cards" },
   { href: "/admin/ministries", label: "Ministry cards" },
+  { href: "/admin/events", label: "Events" },
 ];
 
 export function AdminNav() {

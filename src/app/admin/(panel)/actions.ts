@@ -12,6 +12,11 @@ import {
 } from "@/lib/admin/storage";
 import type { FormState } from "@/lib/admin/types";
 import { SLUG_RE, slugify } from "@/lib/admin/validation";
+import {
+  isValidDateString,
+  isValidPhone,
+  isValidTimeString,
+} from "@/lib/events/dates";
 import { getDb } from "@/lib/firebase/admin";
 
 // Every action starts with requireAdmin(): Server Actions are public POST
@@ -326,6 +331,156 @@ export async function deleteMinistry(formData: FormData): Promise<void> {
   }
 
   redirect("/admin/ministries");
+}
+
+// ---- events (camps, trainings and other programs) -------------------------
+
+export async function saveEvent(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireAdmin();
+
+  const isCreate = text(formData, "mode") === "create";
+  const title = text(formData, "title");
+  const slug = isCreate
+    ? text(formData, "slug") || slugify(title)
+    : text(formData, "slug");
+  const summary = text(formData, "summary");
+  const description = text(formData, "description").replace(/\r\n/g, "\n");
+  const venue = text(formData, "venue");
+  const costs = text(formData, "costs").replace(/\r\n/g, "\n");
+  const contactName = text(formData, "contactName");
+  const contactPhone = text(formData, "contactPhone");
+  const startDate = text(formData, "startDate");
+  const startTime = text(formData, "startTime");
+  const endDate = text(formData, "endDate");
+  const endTime = text(formData, "endTime");
+  const showFrom = text(formData, "showFrom");
+  const showUntil = text(formData, "showUntil");
+  const published = formData.get("published") === "on";
+
+  const errors: FieldErrors = {};
+  checkText(errors, "title", title, "Title", { required: true, max: 100 });
+  checkText(errors, "summary", summary, "Short summary", { max: 200 });
+  checkText(errors, "description", description, "Details", { max: 5000 });
+  checkText(errors, "venue", venue, "Venue", { max: 150 });
+  checkText(errors, "costs", costs, "Costs", { max: 500 });
+  checkText(errors, "contactName", contactName, "Contact name", { max: 80 });
+
+  if (!SLUG_RE.test(slug)) {
+    errors.slug = isCreate
+      ? "Use lowercase letters, numbers and hyphens only (e.g. youth-camp-2026)."
+      : "That event doesn't exist.";
+  }
+  if (contactPhone && !isValidPhone(contactPhone)) {
+    errors.contactPhone = "Enter a valid phone number, e.g. 082 123 4567.";
+  }
+
+  const startOk = isValidDateString(startDate);
+  if (!startDate) errors.startDate = "Start date is required.";
+  else if (!startOk) errors.startDate = "Enter a valid date.";
+
+  if (endDate && !isValidDateString(endDate)) {
+    errors.endDate = "Enter a valid date.";
+  } else if (endDate && startOk && endDate < startDate) {
+    errors.endDate = "The end date can't be before the start date.";
+  }
+
+  if (startTime && !isValidTimeString(startTime)) errors.startTime = "Enter a valid time.";
+  if (endTime && !isValidTimeString(endTime)) errors.endTime = "Enter a valid time.";
+  if (
+    startTime && endTime && !errors.startTime && !errors.endTime &&
+    (!endDate || endDate === startDate) && endTime <= startTime
+  ) {
+    errors.endTime = "The end time must be after the start time.";
+  }
+
+  if (showFrom && !isValidDateString(showFrom)) errors.showFrom = "Enter a valid date.";
+  if (showUntil && !isValidDateString(showUntil)) {
+    errors.showUntil = "Enter a valid date.";
+  } else if (showFrom && showUntil && !errors.showFrom && showUntil < showFrom) {
+    errors.showUntil = "This can't be before the \u201cshow from\u201d date.";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return failure("Please fix the highlighted fields.", errors);
+  }
+
+  const ref = getDb().collection("events").doc(slug);
+  const existing = await ref.get();
+  if (isCreate && existing.exists) {
+    return failure("Please fix the highlighted fields.", {
+      slug: "An event with this web address already exists. Choose another.",
+    });
+  }
+  if (!isCreate && !existing.exists) return failure("That event no longer exists.");
+
+  const resolved = await resolveImageSafely(formData, {
+    folder: "events",
+    name: slug,
+    currentUrl: existing.get("imageUrl"),
+  });
+  if ("error" in resolved) return resolved.error;
+  const { change } = resolved;
+
+  // Blank optional fields are removed on edit; create() rejects FieldValue.delete(),
+  // so on create they're simply left out.
+  const optional = {
+    summary, description, venue, costs, contactName, contactPhone,
+    startTime, endDate, endTime, showFrom, showUntil,
+  };
+  const optionalData: Record<string, string | FieldValue> = {};
+  for (const [key, value] of Object.entries(optional)) {
+    if (value) optionalData[key] = value;
+    else if (!isCreate) optionalData[key] = FieldValue.delete();
+  }
+
+  try {
+    if (isCreate) {
+      await ref.create({
+        title,
+        slug,
+        startDate,
+        published,
+        ...optionalData,
+        ...(typeof change.url === "string" ? { imageUrl: change.url } : {}),
+      });
+    } else {
+      await ref.set(
+        { title, startDate, published, ...optionalData, ...imageFields("imageUrl", change) },
+        { merge: true },
+      );
+    }
+  } catch (error) {
+    console.error("saveEvent failed:", error);
+    await discardUpload(change);
+    return failure(SAVE_FAILED);
+  }
+
+  await deleteStoredImage(change.previous);
+  revalidatePath("/", "layout");
+
+  if (isCreate) redirect("/admin/events");
+  return { status: "success", message: `"${title}" saved.`, at: Date.now() };
+}
+
+export async function deleteEvent(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const slug = text(formData, "slug");
+  if (!SLUG_RE.test(slug)) redirect("/admin/events");
+
+  const ref = getDb().collection("events").doc(slug);
+  const snapshot = await ref.get();
+  if (snapshot.exists) {
+    const imageUrl = snapshot.get("imageUrl") as string | undefined;
+    await ref.delete();
+    await deleteStoredImage(imageUrl);
+    revalidatePath("/", "layout");
+  }
+
+  redirect("/admin/events");
 }
 
 // ---- session -------------------------------------------------------------

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/events", label: "Events" },
   { href: "/departments", label: "Departments" },
   { href: "/services", label: "Services" },
   { href: "/resources", label: "Resources" },
@@ -39,7 +40,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden sm:block">
+        <nav aria-label="Primary" className="hidden lg:block">
           <ul className="flex items-center gap-8 text-sm font-medium text-navy-800">
             {navLinks.map((link) => (
               <li key={link.href}>
@@ -59,7 +60,7 @@ export function Header() {
           onClick={() => setMenuOpen((open) => !open)}
           aria-expanded={menuOpen}
           aria-label="Toggle navigation menu"
-          className="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg sm:hidden"
+          className="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg lg:hidden"
         >
           <span
             className={`h-0.5 w-6 bg-navy-800 transition-transform ${menuOpen ? "translate-y-2 rotate-45" : ""}`}
@@ -74,7 +75,7 @@ export function Header() {
       </div>
 
       {menuOpen && (
-        <nav aria-label="Mobile" className="border-t border-navy-100 sm:hidden">
+        <nav aria-label="Mobile" className="border-t border-navy-100 lg:hidden">
           <ul className="flex flex-col px-6 py-2 text-sm font-medium text-navy-800">
             {navLinks.map((link) => (
               <li key={link.href}>
