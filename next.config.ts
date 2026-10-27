@@ -16,12 +16,6 @@ const nextConfig: NextConfig = {
         hostname: "firebasestorage.googleapis.com",
         pathname: storageBucket ? `/v0/b/${storageBucket}/o/**` : "/v0/b/**",
       },
-      // Legacy Sanity CDN — remove once all images are re-hosted in Firebase Storage.
-      {
-        protocol: "https",
-        hostname: "cdn.sanity.io",
-        pathname: "/images/**",
-      },
     ],
   },
 };

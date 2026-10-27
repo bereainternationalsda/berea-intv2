@@ -80,7 +80,7 @@ export async function uploadImage(
 
 /**
  * Best-effort cleanup of a replaced/removed image. Only touches objects that
- * live under images/ in our own bucket; legacy Sanity URLs are ignored.
+ * live under images/ in our own bucket; any other URL is left alone.
  */
 export async function deleteStoredImage(url?: string): Promise<void> {
   if (!url) return;

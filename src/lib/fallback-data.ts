@@ -1,6 +1,6 @@
 // Used whenever Firebase isn't configured or a collection is empty, so the
 // site renders real content out of the box. Once documents exist in Firestore
-// (see scripts/migrate-sanity-to-firebase.mjs), live data takes over.
+// (create them in /admin), live data takes over.
 
 export type CardItem = {
   _id: string;

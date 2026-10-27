@@ -73,23 +73,6 @@ To give someone access, add their Google email to `ADMIN_EMAILS` and redeploy.
 A ministry appears on the page of the section whose `slug` equals its `sectionSlug`
 (e.g. `departments` → `/departments`, with its own page at `/departments/{slug}`).
 
-## Migrating from Sanity (one-off)
-
-The content was originally in Sanity. To (re)copy it into Firestore and re-host its
-images in Firebase Storage:
-
-```bash
-node --env-file=.env.local scripts/migrate-sanity-to-firebase.mjs            # dry run
-node --env-file=.env.local scripts/migrate-sanity-to-firebase.mjs --apply    # write
-```
-
-It is safe to re-run and never deletes anything. If Storage isn't enabled yet,
-images keep their Sanity CDN URL until you re-run it. **Don't delete the Sanity
-project until every image URL points at `firebasestorage.googleapis.com`.**
-
-> `src/sanity/`, `sanity.config.ts`, `/studio` and `scripts/seed.mjs` are legacy
-> and no longer feed the site. They can be removed once the migration is complete.
-
 ## Project structure
 
 ```
@@ -109,8 +92,6 @@ src/
     fallback-data.ts
     firebase/                # admin.ts (server), client.ts (browser sign-in)
     admin/                   # auth, data access, storage, validation
-scripts/
-  migrate-sanity-to-firebase.mjs
 ```
 
 ## Deploying (e.g. Vercel)

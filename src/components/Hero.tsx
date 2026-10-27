@@ -18,6 +18,7 @@ export function Hero({ eyebrow, headline, subtitle, imageUrl }: HeroProps) {
         alt=""
         fill
         priority
+        sizes="100vw"
         unoptimized={!imageUrl}
         className="object-cover"
       />

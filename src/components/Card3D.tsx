@@ -71,6 +71,9 @@ export function Card3D({
                 src={imageUrl}
                 alt=""
                 fill
+                // Mirrors CardGrid: 3 columns from lg, 2 from sm, 1 below. The
+                // 347px cap is the column width once the 72rem container maxes out.
+                sizes="(min-width: 1280px) 347px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
             ) : (
