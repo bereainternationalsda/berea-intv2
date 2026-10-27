@@ -7,6 +7,7 @@ import {
   isPageAvailable,
   todayInSA,
 } from "@/lib/events/dates";
+import { allowedRegistrationTypes } from "@/lib/events/registration";
 import type { EventItem } from "@/lib/events/types";
 
 // Firestore layout:  events/{slug}
@@ -30,6 +31,9 @@ export function toEventItem(doc: FirebaseFirestore.DocumentSnapshot): EventItem 
     published: doc.get("published") === true,
     showFrom: doc.get("showFrom"),
     showUntil: doc.get("showUntil"),
+    registrationEnabled: doc.get("registrationEnabled") === true,
+    registrationDeadline: doc.get("registrationDeadline"),
+    registrationTypes: allowedRegistrationTypes(doc.get("registrationTypes")),
   };
 }
 

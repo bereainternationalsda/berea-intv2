@@ -17,6 +17,7 @@ import {
   isValidPhone,
   isValidTimeString,
 } from "@/lib/events/dates";
+import { REGISTRATION_TYPES } from "@/lib/events/registration";
 import { getDb } from "@/lib/firebase/admin";
 
 // Every action starts with requireAdmin(): Server Actions are public POST
@@ -359,6 +360,11 @@ export async function saveEvent(
   const showFrom = text(formData, "showFrom");
   const showUntil = text(formData, "showUntil");
   const published = formData.get("published") === "on";
+  const registrationEnabled = formData.get("registrationEnabled") === "on";
+  const registrationTypes = REGISTRATION_TYPES.filter(
+    (type) => formData.get(`type_${type}`) === "on",
+  );
+  const registrationDeadline = text(formData, "registrationDeadline");
 
   const errors: FieldErrors = {};
   checkText(errors, "title", title, "Title", { required: true, max: 100 });
@@ -403,6 +409,22 @@ export async function saveEvent(
     errors.showUntil = "This can't be before the \u201cshow from\u201d date.";
   }
 
+  if (registrationDeadline && !isValidDateString(registrationDeadline)) {
+    errors.registrationDeadline = "Enter a valid date.";
+  }
+  if (registrationEnabled) {
+    if (registrationTypes.length === 0) {
+      errors.registrationTypes = "Choose at least one kind of registration.";
+    }
+    if (registrationDeadline && !errors.registrationDeadline && startOk) {
+      const eventEnd =
+        endDate && isValidDateString(endDate) && endDate >= startDate ? endDate : startDate;
+      if (registrationDeadline > eventEnd) {
+        errors.registrationDeadline = "The last day to register can't be after the event ends.";
+      }
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return failure("Please fix the highlighted fields.", errors);
   }
@@ -428,7 +450,7 @@ export async function saveEvent(
   // so on create they're simply left out.
   const optional = {
     summary, description, venue, costs, contactName, contactPhone,
-    startTime, endDate, endTime, showFrom, showUntil,
+    startTime, endDate, endTime, showFrom, showUntil, registrationDeadline,
   };
   const optionalData: Record<string, string | FieldValue> = {};
   for (const [key, value] of Object.entries(optional)) {
@@ -443,12 +465,17 @@ export async function saveEvent(
         slug,
         startDate,
         published,
+        registrationEnabled,
+        registrationTypes,
         ...optionalData,
         ...(typeof change.url === "string" ? { imageUrl: change.url } : {}),
       });
     } else {
       await ref.set(
-        { title, startDate, published, ...optionalData, ...imageFields("imageUrl", change) },
+        {
+          title, startDate, published, registrationEnabled, registrationTypes,
+          ...optionalData, ...imageFields("imageUrl", change),
+        },
         { merge: true },
       );
     }
@@ -474,6 +501,13 @@ export async function deleteEvent(formData: FormData): Promise<void> {
   const ref = getDb().collection("events").doc(slug);
   const snapshot = await ref.get();
   if (snapshot.exists) {
+    // Registrations are personal data that organisers still need. Refuse, rather
+    // than orphan them: they must be exported and deleted first (or the event unpublished).
+    const registrations = await ref.collection("registrations").count().get();
+    if (registrations.data().count > 0) {
+      redirect(`/admin/events/${slug}?blocked=registrations`);
+    }
+
     const imageUrl = snapshot.get("imageUrl") as string | undefined;
     await ref.delete();
     await deleteStoredImage(imageUrl);
@@ -481,6 +515,58 @@ export async function deleteEvent(formData: FormData): Promise<void> {
   }
 
   redirect("/admin/events");
+}
+
+// ---- registrations ---------------------------------------------------------
+
+const REFERENCE_RE = /^BRN-[A-HJ-NP-Z2-9]{6}$/;
+
+function registrationsOf(slug: string) {
+  return getDb().collection("events").doc(slug).collection("registrations");
+}
+
+/** The "paid" tick the organiser keeps while chasing payments. */
+export async function setRegistrationPaid(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const slug = text(formData, "slug");
+  const id = text(formData, "id");
+  if (!SLUG_RE.test(slug) || !REFERENCE_RE.test(id)) return;
+
+  const ref = registrationsOf(slug).doc(id);
+  if (!(await ref.get()).exists) return;
+
+  await ref.update({ paid: text(formData, "paid") === "true" });
+  revalidatePath(`/admin/events/${slug}/registrations`);
+}
+
+export async function deleteRegistration(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const slug = text(formData, "slug");
+  const id = text(formData, "id");
+  if (!SLUG_RE.test(slug) || !REFERENCE_RE.test(id)) return;
+
+  await registrationsOf(slug).doc(id).delete();
+  revalidatePath(`/admin/events/${slug}/registrations`);
+}
+
+/**
+ * For clearing personal data once an event is over. The word DELETE is checked
+ * here on the server, not just in the browser, so a stray request can't do it.
+ */
+export async function deleteAllRegistrations(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const slug = text(formData, "slug");
+  if (!SLUG_RE.test(slug)) redirect("/admin/events");
+  if (text(formData, "confirmation") !== "DELETE") {
+    redirect(`/admin/events/${slug}/registrations`);
+  }
+
+  await getDb().recursiveDelete(registrationsOf(slug));
+  revalidatePath(`/admin/events/${slug}/registrations`);
+  redirect(`/admin/events/${slug}/registrations`);
 }
 
 // ---- session -------------------------------------------------------------

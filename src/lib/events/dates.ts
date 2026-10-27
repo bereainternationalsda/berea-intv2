@@ -17,6 +17,13 @@ export type EventDates = {
 
 export type EventStatus = "draft" | "scheduled" | "live" | "ended";
 
+/** An event plus its registration settings. */
+export type RegistrationWindow = EventDates & {
+  registrationEnabled?: boolean;
+  /** Last day people can register. Blank = until the day before the event starts. */
+  registrationDeadline?: string;
+};
+
 /** Today's date in South Africa, as YYYY-MM-DD. */
 export function todayInSA(now: Date = new Date()): string {
   // The "en-CA" locale formats dates as YYYY-MM-DD.
@@ -79,6 +86,25 @@ export function isPageAvailable(event: EventDates, today: string): boolean {
 /** The event appears in the homepage row and on /events. */
 export function isListed(event: EventDates, today: string): boolean {
   return isPageAvailable(event, today) && today <= lastListedDate(event);
+}
+
+/** The calendar day before a YYYY-MM-DD date. */
+export function previousDay(value: string): string {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * People can register: the event is live on the site, registration is switched
+ * on, and the last day hasn't passed. With no deadline, registration closes when
+ * the event starts (so the last day to register is the day before).
+ */
+export function isRegistrationOpen(event: RegistrationWindow, today: string): boolean {
+  if (!event.registrationEnabled) return false;
+  if (!isPageAvailable(event, today) || hasEnded(event, today)) return false;
+
+  const lastDay = event.registrationDeadline ?? previousDay(event.startDate);
+  return today <= lastDay;
 }
 
 /** A label for the admin list. */

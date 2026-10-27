@@ -1,5 +1,7 @@
 // Safe to import from server and client code.
 
+import type { RegistrationType } from "./registration.ts";
+
 export type EventItem = {
   slug: string;
   title: string;
@@ -25,4 +27,10 @@ export type EventItem = {
   showFrom?: string;
   /** Last day the event is promoted. Blank = the event's own last day. */
   showUntil?: string;
+  /** People can register on the website. */
+  registrationEnabled?: boolean;
+  /** Last day to register. Blank = until the event starts. */
+  registrationDeadline?: string;
+  /** Which kinds of registration the event takes. Missing = all of them. */
+  registrationTypes?: RegistrationType[];
 };

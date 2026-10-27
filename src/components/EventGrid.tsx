@@ -2,6 +2,7 @@ import { Card3D } from "@/components/Card3D";
 import {
   formatEventDates,
   isHappeningNow,
+  isRegistrationOpen,
   todayInSA,
 } from "@/lib/events/dates";
 import type { EventItem } from "@/lib/events/types";
@@ -21,7 +22,13 @@ export function EventGrid({ events }: { events: EventItem[] }) {
           footnote={event.venue ? `📍 ${event.venue}` : undefined}
           imageUrl={event.imageUrl}
           icon="📅"
-          badge={isHappeningNow(event, today) ? "Happening now" : undefined}
+          badge={
+            isRegistrationOpen(event, today)
+              ? "Registration open"
+              : isHappeningNow(event, today)
+                ? "Happening now"
+                : undefined
+          }
           ctaLabel="View details"
           index={index}
         />

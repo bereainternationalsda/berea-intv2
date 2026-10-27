@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RegistrationSection } from "@/components/events/RegistrationSection";
 import { getPublicEvent } from "@/lib/events/content";
 import { getSiteUrl } from "@/lib/site-url";
 import {
@@ -9,8 +10,10 @@ import {
   formatEventTimes,
   hasEnded,
   isHappeningNow,
+  isRegistrationOpen,
   todayInSA,
 } from "@/lib/events/dates";
+import { allowedRegistrationTypes } from "@/lib/events/registration";
 
 // Re-render at most once a minute, so "ended" notices appear without a redeploy.
 export const revalidate = 60;
@@ -72,6 +75,7 @@ export default async function EventPage({ params }: Params) {
   const today = todayInSA();
   const ended = hasEnded(event, today);
   const happeningNow = isHappeningNow(event, today);
+  const registrationOpen = isRegistrationOpen(event, today);
   const times = formatEventTimes(event.startTime, event.endTime);
   const paragraphs = (event.description ?? "").split(/\n{2,}/).filter(Boolean);
   const phoneHref = event.contactPhone
@@ -131,9 +135,50 @@ export default async function EventPage({ params }: Params) {
               ))}
             </div>
           )}
+
+          {event.registrationEnabled && (
+            <section
+              id="register"
+              aria-labelledby="register-heading"
+              className="scroll-mt-24 rounded-2xl border border-navy-100 bg-white p-4 shadow-sm sm:p-8"
+            >
+              <h2
+                id="register-heading"
+                className="font-serif text-2xl font-bold text-navy-900"
+              >
+                Register
+              </h2>
+              {registrationOpen ? (
+                <div className="mt-6">
+                  <RegistrationSection
+                    eventSlug={event.slug}
+                    eventTitle={event.title}
+                    allowedTypes={allowedRegistrationTypes(event.registrationTypes)}
+                    contactName={event.contactName}
+                    contactPhone={event.contactPhone}
+                  />
+                </div>
+              ) : (
+                <p className="mt-4 text-navy-700">
+                  Registration for this event has closed.
+                  {event.contactName || event.contactPhone
+                    ? ` If you still want to attend, please contact ${[event.contactName, event.contactPhone].filter(Boolean).join(" on ")}.`
+                    : ""}
+                </p>
+              )}
+            </section>
+          )}
         </div>
 
         <aside className="h-fit rounded-2xl border border-navy-100 bg-navy-50 p-6">
+          {registrationOpen && (
+            <a
+              href="#register"
+              className="mb-6 block rounded-lg bg-navy-800 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-navy-700"
+            >
+              Register now
+            </a>
+          )}
           <h2 className="font-serif text-lg font-bold text-navy-900">The details</h2>
           <dl className="mt-5 space-y-5">
             <Detail label="When">

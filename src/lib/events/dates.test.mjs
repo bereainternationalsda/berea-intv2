@@ -63,6 +63,41 @@ describe("visibility rules (today = 10 March 2026)", () => {
   }
 });
 
+describe("previousDay", () => {
+  test("crosses month and year boundaries, and leap days", () => {
+    assert.equal(d.previousDay("2026-03-01"), "2026-02-28");
+    assert.equal(d.previousDay("2024-03-01"), "2024-02-29");
+    assert.equal(d.previousDay("2026-01-01"), "2025-12-31");
+    assert.equal(d.previousDay("2026-03-15"), "2026-03-14");
+  });
+});
+
+describe("isRegistrationOpen (today = 10 March 2026)", () => {
+  const TODAY = "2026-03-10";
+  const reg = (overrides) => ({ published: true, registrationEnabled: true, startDate: "2026-03-20", ...overrides });
+  const open = (overrides) => d.isRegistrationOpen(reg(overrides), TODAY);
+
+  const rows = [
+    ["registration switched off",                    { registrationEnabled: false },                         false],
+    ["registration never configured",                { registrationEnabled: undefined },                     false],
+    ["a draft, even with registration on",           { published: false },                                   false],
+    ["not yet promoted (show-from is tomorrow)",     { showFrom: "2026-03-11" },                             false],
+    ["a future event, no deadline",                  {},                                                     true ],
+    ["no deadline, event starts tomorrow",           { startDate: "2026-03-11" },                            true ],
+    ["no deadline, event starts today: closed",      { startDate: TODAY },                                   false],
+    ["no deadline, event began yesterday",           { startDate: "2026-03-09", endDate: "2026-03-12" },     false],
+    ["deadline is today: still open",                { registrationDeadline: TODAY },                        true ],
+    ["deadline was yesterday: closed",               { registrationDeadline: "2026-03-09" },                 false],
+    ["deadline is tomorrow",                         { registrationDeadline: "2026-03-11" },                 true ],
+    ["same-day training, deadline = start day",      { startDate: TODAY, registrationDeadline: TODAY },      true ],
+    ["camp under way, deadline still ahead",         { startDate: "2026-03-08", endDate: "2026-03-12", registrationDeadline: "2026-03-11" }, true],
+    ["event over, even though the deadline is ahead",{ startDate: "2026-03-01", endDate: "2026-03-05", registrationDeadline: "2026-03-30" }, false],
+  ];
+  for (const [label, overrides, expected] of rows) {
+    test(label, () => assert.equal(open(overrides), expected));
+  }
+});
+
 test("events sort by start date, then title", () => {
   const sorted = [
     { startDate: "2026-04-01", title: "B" },

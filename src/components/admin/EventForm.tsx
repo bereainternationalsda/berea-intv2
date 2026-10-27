@@ -16,7 +16,14 @@ import {
   formatEventDates,
   isValidDateString,
   lastListedDate,
+  previousDay,
 } from "@/lib/events/dates";
+import {
+  REGISTRATION_TYPES,
+  REGISTRATION_TYPE_INFO,
+  allowedRegistrationTypes,
+  type RegistrationType,
+} from "@/lib/events/registration";
 import type { EventItem } from "@/lib/events/types";
 
 type EventFormProps = {
@@ -62,6 +69,34 @@ function promotionSummary(values: {
   return `It will appear on the website ${from}, and is removed after ${formatEventDates(last)}.`;
 }
 
+/** What the registration settings add up to, in plain English. */
+function registrationSummary(values: {
+  enabled: boolean;
+  types: RegistrationType[];
+  startDate: string;
+  endDate: string;
+  deadline: string;
+}): string {
+  if (!values.enabled) {
+    return "Registration is switched off. The event page will show the details only.";
+  }
+  if (values.types.length === 0) return "⚠ Tick at least one kind of registration.";
+  if (!isValidDateString(values.startDate)) {
+    return "Enter the event's start date to see when registration closes.";
+  }
+
+  const eventEnd = isValidDateString(values.endDate) && values.endDate >= values.startDate
+    ? values.endDate
+    : values.startDate;
+  if (isValidDateString(values.deadline)) {
+    if (values.deadline > eventEnd) {
+      return "⚠ The last day to register is after the event has finished. Please check the date.";
+    }
+    return `People can register until the end of ${formatEventDates(values.deadline)}.`;
+  }
+  return `Registration closes when the event starts. The last day to register is ${formatEventDates(previousDay(values.startDate))}.`;
+}
+
 export function EventForm({ mode, initial }: EventFormProps) {
   const isCreate = mode === "create";
   const [state, action, pending] = useActionState(saveEvent, idleState);
@@ -83,6 +118,15 @@ export function EventForm({ mode, initial }: EventFormProps) {
   const [published, setPublished] = useState(initial.published);
   const [showFrom, setShowFrom] = useState(initial.showFrom ?? "");
   const [showUntil, setShowUntil] = useState(initial.showUntil ?? "");
+  const [registrationEnabled, setRegistrationEnabled] = useState(
+    initial.registrationEnabled ?? false,
+  );
+  const [allowedTypes, setAllowedTypes] = useState<RegistrationType[]>(
+    allowedRegistrationTypes(initial.registrationTypes),
+  );
+  const [registrationDeadline, setRegistrationDeadline] = useState(
+    initial.registrationDeadline ?? "",
+  );
 
   const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
   const resetKey = state.status === "idle" ? "idle" : state.at;
@@ -240,6 +284,68 @@ export function EventForm({ mode, initial }: EventFormProps) {
             error={errors.contactPhone}
           />
         </div>
+      </section>
+
+      <section className="space-y-6 border-t border-navy-100 pt-8">
+        <h2 className="font-serif text-xl font-bold text-navy-900">Registration</h2>
+
+        <CheckboxField
+          name="registrationEnabled"
+          label="People can register on the website"
+          hint="Adds a registration form to the event's page. Registrations are private; only you can see and export them."
+          checked={registrationEnabled}
+          onChange={setRegistrationEnabled}
+          resetKey={resetKey}
+        />
+
+        {/* Hidden (not removed) when off, so saving doesn't wipe these settings. */}
+        <div className={registrationEnabled ? "space-y-6" : "hidden"}>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-semibold text-navy-900">
+              Who can register?
+            </legend>
+            {REGISTRATION_TYPES.map((type) => (
+              <CheckboxField
+                key={type}
+                name={`type_${type}`}
+                label={REGISTRATION_TYPE_INFO[type].label}
+                hint={REGISTRATION_TYPE_INFO[type].hint}
+                checked={allowedTypes.includes(type)}
+                onChange={(checked) =>
+                  setAllowedTypes((current) =>
+                    checked
+                      ? [...new Set([...current, type])]
+                      : current.filter((item) => item !== type),
+                  )
+                }
+                resetKey={resetKey}
+              />
+            ))}
+            {errors.registrationTypes && (
+              <p className="text-xs font-medium text-red-700">{errors.registrationTypes}</p>
+            )}
+          </fieldset>
+
+          <TextField
+            name="registrationDeadline"
+            label="Last day to register (optional)"
+            hint="Leave blank to close registration when the event starts."
+            type="date"
+            value={registrationDeadline}
+            onChange={setRegistrationDeadline}
+            error={errors.registrationDeadline}
+          />
+        </div>
+
+        <p className="rounded-lg bg-navy-50 px-4 py-3 text-sm text-navy-800">
+          {registrationSummary({
+            enabled: registrationEnabled,
+            types: allowedTypes,
+            startDate,
+            endDate,
+            deadline: registrationDeadline,
+          })}
+        </p>
       </section>
 
       <section className="space-y-6 border-t border-navy-100 pt-8">
