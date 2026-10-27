@@ -1,10 +1,4 @@
-import { client } from "@/sanity/client";
-import {
-  ministriesBySectionSlugQuery,
-  sectionsQuery,
-  siteSettingsQuery,
-} from "@/sanity/queries";
-import { isSanityConfigured } from "@/sanity/env";
+import { getDb, isFirebaseConfigured } from "@/lib/firebase/admin";
 import {
   fallbackMinistries,
   fallbackSections,
@@ -13,24 +7,48 @@ import {
   type SiteSettings,
 } from "@/lib/fallback-data";
 
+// Firestore layout:
+//   siteSettings/main          -> hero text + image
+//   sections/{slug}            -> homepage cards (Departments, Services, ...)
+//   ministries/{slug}          -> sub-cards, linked to a section via `sectionSlug`
+
+// Sorted in memory (not via orderBy) so queries need no composite indexes.
+function toCardItems(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[],
+): CardItem[] {
+  return [...docs]
+    .sort((a, b) => (a.get("order") ?? 0) - (b.get("order") ?? 0))
+    .map((doc) => ({
+      _id: doc.id,
+      title: doc.get("title"),
+      slug: doc.get("slug"),
+      description: doc.get("description"),
+      icon: doc.get("icon"),
+      imageUrl: doc.get("imageUrl"),
+    }));
+}
+
 export async function getSiteSettings(): Promise<SiteSettings> {
-  if (!isSanityConfigured) return fallbackSiteSettings;
+  if (!isFirebaseConfigured) return fallbackSiteSettings;
 
   try {
-    const settings = await client.fetch<SiteSettings | null>(siteSettingsQuery);
-    return settings ?? fallbackSiteSettings;
-  } catch {
+    const snapshot = await getDb().collection("siteSettings").doc("main").get();
+    if (!snapshot.exists) return fallbackSiteSettings;
+    return { ...fallbackSiteSettings, ...(snapshot.data() as SiteSettings) };
+  } catch (error) {
+    console.error("Failed to read siteSettings from Firestore:", error);
     return fallbackSiteSettings;
   }
 }
 
 export async function getSections(): Promise<CardItem[]> {
-  if (!isSanityConfigured) return fallbackSections;
+  if (!isFirebaseConfigured) return fallbackSections;
 
   try {
-    const sections = await client.fetch<CardItem[]>(sectionsQuery);
-    return sections.length > 0 ? sections : fallbackSections;
-  } catch {
+    const snapshot = await getDb().collection("sections").get();
+    return snapshot.empty ? fallbackSections : toCardItems(snapshot.docs);
+  } catch (error) {
+    console.error("Failed to read sections from Firestore:", error);
     return fallbackSections;
   }
 }
@@ -38,17 +56,20 @@ export async function getSections(): Promise<CardItem[]> {
 export async function getMinistriesForSection(
   sectionSlug: string,
 ): Promise<CardItem[]> {
-  if (!isSanityConfigured) return fallbackMinistries[sectionSlug] ?? [];
+  const fallback = fallbackMinistries[sectionSlug] ?? [];
+  if (!isFirebaseConfigured) return fallback;
 
   try {
-    const ministries = await client.fetch<CardItem[]>(
-      ministriesBySectionSlugQuery,
-      { sectionSlug },
+    const snapshot = await getDb()
+      .collection("ministries")
+      .where("sectionSlug", "==", sectionSlug)
+      .get();
+    return snapshot.empty ? fallback : toCardItems(snapshot.docs);
+  } catch (error) {
+    console.error(
+      `Failed to read ministries for "${sectionSlug}" from Firestore:`,
+      error,
     );
-    return ministries.length > 0
-      ? ministries
-      : fallbackMinistries[sectionSlug] ?? [];
-  } catch {
-    return fallbackMinistries[sectionSlug] ?? [];
+    return fallback;
   }
 }

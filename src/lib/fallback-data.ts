@@ -1,6 +1,6 @@
-// Used whenever Sanity isn't configured yet, so the site renders real content
-// out of the box. Once NEXT_PUBLIC_SANITY_PROJECT_ID is set and documents are
-// seeded in the Studio, live data from Sanity takes over automatically.
+// Used whenever Firebase isn't configured or a collection is empty, so the
+// site renders real content out of the box. Once documents exist in Firestore
+// (see scripts/migrate-sanity-to-firebase.mjs), live data takes over.
 
 export type CardItem = {
   _id: string;
@@ -8,22 +8,21 @@ export type CardItem = {
   slug: string;
   description?: string;
   icon?: string;
-  image?: { asset?: { _ref: string } } | null;
+  imageUrl?: string;
 };
 
 export type SiteSettings = {
   heroEyebrow?: string;
   heroHeadline: string;
   heroSubtitle?: string;
-  heroImage?: { asset?: { _ref: string } } | null;
+  heroImageUrl?: string;
 };
 
 export const fallbackSiteSettings: SiteSettings = {
   heroEyebrow: "Welcome Home",
-  heroHeadline: "Berea Seventh-day Adventist Church",
+  heroHeadline: "Berea International Seventh-day Adventist Church",
   heroSubtitle:
     "A place to worship, grow, and belong. Join our family as we discover freedom, healing, and hope in Jesus Christ together.",
-  heroImage: null,
 };
 
 export const fallbackSections: CardItem[] = [
@@ -34,7 +33,6 @@ export const fallbackSections: CardItem[] = [
     description:
       "Meet the ministries and teams that carry out the church's mission, from youth to community outreach.",
     icon: "🏛️",
-    image: null,
   },
   {
     _id: "fallback-services",
@@ -43,7 +41,6 @@ export const fallbackSections: CardItem[] = [
     description:
       "Service times, worship styles, and ways to join us in person or online each week.",
     icon: "⛪",
-    image: null,
   },
   {
     _id: "fallback-resources",
@@ -52,7 +49,6 @@ export const fallbackSections: CardItem[] = [
     description:
       "Bible study guides, sermons, forms, and other materials to help you grow in faith.",
     icon: "📚",
-    image: null,
   },
 ];
 
@@ -64,7 +60,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "pathfinders",
       description: "An adventure-based program helping youth grow in character and faith.",
       icon: "🧭",
-      image: null,
     },
     {
       _id: "fallback-adventurers",
@@ -72,7 +67,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "adventurers",
       description: "A family-centered program for younger children to explore faith and fun together.",
       icon: "⭐",
-      image: null,
     },
     {
       _id: "fallback-family-life",
@@ -80,7 +74,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "family-life",
       description: "Resources and events supporting strong marriages, parenting, and family bonds.",
       icon: "👨‍👩‍👧‍👦",
-      image: null,
     },
     {
       _id: "fallback-ambassador",
@@ -88,7 +81,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "ambassador",
       description: "Equipping young adults to lead and represent Christ in every part of life.",
       icon: "🎓",
-      image: null,
     },
     {
       _id: "fallback-childrens-ministries",
@@ -96,7 +88,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "childrens-ministries",
       description: "Nurturing the youngest members of our church family in the love of Jesus.",
       icon: "🧒",
-      image: null,
     },
     {
       _id: "fallback-community-services",
@@ -104,7 +95,6 @@ export const fallbackMinistries: Record<string, CardItem[]> = {
       slug: "adventist-community-services",
       description: "Serving our neighbors through outreach, relief, and practical compassion.",
       icon: "🤝",
-      image: null,
     },
   ],
   services: [],

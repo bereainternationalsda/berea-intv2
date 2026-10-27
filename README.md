@@ -1,100 +1,121 @@
-# Berea Seventh-day Adventist Church — Website
+# Berea International Seventh-day Adventist Church — Website
 
-Next.js (App Router) + Tailwind CSS + Framer Motion, with Sanity as the
-content management system so non-developers can edit cards and pages without
-touching code.
+Next.js (App Router) + Tailwind CSS + Framer Motion, with **Firebase** (Firestore,
+Authentication, Storage) as the content database and a built-in `/admin` area so
+non-developers can edit the site without touching code.
 
 ## Stack
 
 - **Next.js 16** (TypeScript, App Router)
-- **Tailwind CSS v4** for styling (navy/white theme matching gc.adventist.org)
-- **Framer Motion** for the 3D tilt-on-hover cards
-- **Sanity** as a headless CMS, embedded directly at `/studio` (no separate
-  deployment needed)
+- **Tailwind CSS v4** — navy/white theme matching gc.adventist.org
+- **Framer Motion** — 3D tilt-on-hover cards
+- **Firebase** — Firestore (content), Authentication (Google sign-in for admins),
+  Cloud Storage (uploaded photos)
 
-## Getting Started
+## Getting started
 
 ```bash
+cp .env.local.example .env.local   # then fill it in (see below)
+npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The site runs out of the
-box using built-in placeholder content (`src/lib/fallback-data.ts`) even
-before Sanity is configured, so you can see the homepage, Departments page,
-and ministry cards immediately.
+Open [http://localhost:3000](http://localhost:3000). Without Firebase configured the
+site still renders using the placeholder content in `src/lib/fallback-data.ts`.
 
-## Connecting the CMS
+## One-time Firebase setup
 
-1. Log in and create a Sanity project:
-   ```bash
-   npx sanity login
-   npx sanity init
-   ```
-   When asked, choose "Create new project," pick the `production` dataset,
-   and say no to a default schema (this repo already has one).
+In the [Firebase console](https://console.firebase.google.com) for your project:
 
-2. Copy the env template and fill in your project ID:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-   Set `NEXT_PUBLIC_SANITY_PROJECT_ID` to the ID printed by `sanity init`.
+1. **Firestore Database** → Create database → *production mode*. The default
+   deny-all rules are correct: the website and `/admin` read and write through the
+   server (Admin SDK), never directly from the browser.
+2. **Authentication** → Get started → Sign-in method → enable **Google**.
+3. **Storage** → Get started. Needed for photo uploads (may require the
+   pay-as-you-go plan; the free monthly allowance is ample for a church site).
+4. **Project settings → Service accounts → Generate new private key.** Copy the
+   values into `.env.local` (see `.env.local.example`). **Never commit that JSON
+   file** — it is git-ignored, but treat it like a password.
+5. Set `ADMIN_EMAILS` in `.env.local` to the Google accounts allowed into `/admin`.
 
-3. Restart the dev server. The site now reads from your live Sanity dataset
-   instead of the placeholder data (falling back automatically if a query
-   returns nothing).
+## Editing content
 
-4. Visit `http://localhost:3000/studio` and log in with the same Sanity
-   account to add/edit content directly — no separate CMS deployment.
+Go to **`/admin`** and sign in with an allowed Google account.
 
-### Content model
+| Screen | What it edits |
+| --- | --- |
+| Site settings | Homepage hero photo, small heading, main heading, subtitle |
+| Section cards | The big homepage cards (Departments, Services, Resources) |
+| Ministry cards | Cards inside each section (Pathfinders, Adventurers, …): add, edit, reorder, move between sections, delete |
 
-- **Site Settings** (`siteSettings`) — a singleton document controlling the
-  homepage hero: image, eyebrow text, headline, and subtitle. Only one of
-  these exists; the Studio prevents creating a second one.
-- **Homepage Section** (`section`) — the 3 hero cards (Departments, Services,
-  Resources). Each has a `slug` that becomes its page route.
-- **Ministry** (`ministry`) — the sub-page cards (Pathfinders, Adventurers,
-  Family Life, Ambassador, Children's Ministries, Adventist Community
-  Services, etc.). Each references a parent `Homepage Section`.
+Changes appear on the live site within seconds. Photos are resized in the browser
+before upload (max 5 MB; JPG, PNG or WebP).
 
-### Optional: seed starter content via script
+To give someone access, add their Google email to `ADMIN_EMAILS` and redeploy.
 
-Instead of typing everything into the Studio by hand, you can push the same
-starter content (site settings + 3 sections + 6 ministries) programmatically:
+### Security model
 
-1. Create an API token with **Editor** permissions at
-   [sanity.io/manage](https://sanity.io/manage) → your project → API → Tokens.
-2. Add it to `.env.local` as `SANITY_API_WRITE_TOKEN`.
-3. Run:
-   ```bash
-   node --env-file=.env.local scripts/seed.mjs
-   ```
+- `/admin` pages, data functions and Server Actions each re-check the session
+  (`src/lib/admin/auth.ts`); a missing check in one place can't expose the others.
+- Sign-in uses Google; the server exchanges the ID token for an `httpOnly`
+  session cookie (5 days) and only admits emails in `ADMIN_EMAILS`.
+- Firestore rules deny all direct browser access.
+- `/admin` is marked `noindex`.
 
-## Replacing the hero image
+## Data model (Firestore)
 
-Once Sanity is connected, go to `/studio` → **Site Settings** → upload an
-image to **Hero Image** → Publish. It appears on the homepage immediately,
-no code changes needed. Until an image is uploaded there, the homepage falls
-back to the original placeholder illustration at
-`public/images/hero-church.svg`.
+| Path | Fields |
+| --- | --- |
+| `siteSettings/main` | `heroHeadline`, `heroEyebrow`, `heroSubtitle`, `heroImageUrl` |
+| `sections/{slug}` | `title`, `description`, `icon`, `imageUrl`, `order` |
+| `ministries/{slug}` | `title`, `slug`, `description`, `icon`, `imageUrl`, `order`, `sectionSlug` |
+
+A ministry appears on the page of the section whose `slug` equals its `sectionSlug`
+(e.g. `departments` → `/departments`, with its own page at `/departments/{slug}`).
+
+## Migrating from Sanity (one-off)
+
+The content was originally in Sanity. To (re)copy it into Firestore and re-host its
+images in Firebase Storage:
+
+```bash
+node --env-file=.env.local scripts/migrate-sanity-to-firebase.mjs            # dry run
+node --env-file=.env.local scripts/migrate-sanity-to-firebase.mjs --apply    # write
+```
+
+It is safe to re-run and never deletes anything. If Storage isn't enabled yet,
+images keep their Sanity CDN URL until you re-run it. **Don't delete the Sanity
+project until every image URL points at `firebasestorage.googleapis.com`.**
+
+> `src/sanity/`, `sanity.config.ts`, `/studio` and `scripts/seed.mjs` are legacy
+> and no longer feed the site. They can be removed once the migration is complete.
 
 ## Project structure
 
 ```
 src/
   app/
-    (site)/            # marketing pages, wrapped in Header + Footer
-      page.tsx          # homepage: hero + 3 section cards
-      departments/      # ministry cards + [slug] detail pages
-      services/
-      resources/
-    studio/[[...tool]]/ # embedded Sanity Studio at /studio
-  components/           # Header, Footer, Hero, Card3D, CardGrid
-  lib/                  # content fetching + fallback data
-  sanity/               # client, schemas, queries, env
+    (site)/                  # public pages, wrapped in Header + Footer
+      page.tsx                 # homepage: hero + section cards
+      departments/ services/ resources/   # section listing pages
+      [section]/[slug]/        # card detail pages, e.g. /departments/pathfinders
+    admin/
+      login/                   # Google sign-in
+      (panel)/                 # signed-in screens + Server Actions (actions.ts)
+    api/admin/session/       # ID token -> session cookie
+  components/                # site components; admin/ holds the admin forms
+  lib/
+    content.ts               # public Firestore reads (+ fallback)
+    fallback-data.ts
+    firebase/                # admin.ts (server), client.ts (browser sign-in)
+    admin/                   # auth, data access, storage, validation
+scripts/
+  migrate-sanity-to-firebase.mjs
 ```
 
-## Deploying
+## Deploying (e.g. Vercel)
 
-Deploy to [Vercel](https://vercel.com/new) — set the same environment
-variables from `.env.local` in the project's dashboard settings.
+Set every variable from `.env.local.example` in the host's dashboard. For
+`FIREBASE_PRIVATE_KEY`, paste the key with its `\n` sequences. Then add the
+production domain in Firebase console → Authentication → Settings →
+**Authorised domains**, or Google sign-in will fail on the live site.

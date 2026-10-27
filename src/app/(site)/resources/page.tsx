@@ -1,7 +1,10 @@
 import { CardGrid } from "@/components/CardGrid";
 import { getMinistriesForSection } from "@/lib/content";
 
-export const metadata = { title: "Resources | Berea SDA Church" };
+export const metadata = { title: "Resources | Berea International SDA" };
+
+// Re-render at most once a minute so content edits show up without a redeploy.
+export const revalidate = 60;
 
 export default async function ResourcesPage() {
   const items = await getMinistriesForSection("resources");
@@ -13,8 +16,7 @@ export default async function ResourcesPage() {
           Resources
         </h1>
         <p className="mt-3 text-navy-700/80">
-          Bible study guides, sermons, and materials to help you grow. Added
-          and managed from the Studio.
+          Bible study guides, sermons, and materials to help you grow in faith.
         </p>
       </div>
 

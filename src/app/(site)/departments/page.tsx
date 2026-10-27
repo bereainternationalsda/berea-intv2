@@ -1,7 +1,10 @@
 import { CardGrid } from "@/components/CardGrid";
 import { getMinistriesForSection } from "@/lib/content";
 
-export const metadata = { title: "Departments | Berea SDA Church" };
+export const metadata = { title: "Departments | Berea International SDA" };
+
+// Re-render at most once a minute so content edits show up without a redeploy.
+export const revalidate = 60;
 
 export default async function DepartmentsPage() {
   const ministries = await getMinistriesForSection("departments");

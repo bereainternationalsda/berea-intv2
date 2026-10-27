@@ -1,6 +1,5 @@
 import { Card3D } from "@/components/Card3D";
 import type { CardItem } from "@/lib/fallback-data";
-import { urlFor } from "@/sanity/image";
 
 export function CardGrid({
   items,
@@ -26,7 +25,7 @@ export function CardGrid({
           title={item.title}
           description={item.description}
           icon={item.icon}
-          imageUrl={item.image?.asset ? urlFor(item.image).width(800).height(600).url() : undefined}
+          imageUrl={item.imageUrl}
           index={index}
         />
       ))}

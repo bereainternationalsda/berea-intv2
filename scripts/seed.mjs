@@ -30,7 +30,7 @@ const siteSettings = {
   _id: "siteSettings",
   _type: "siteSettings",
   heroEyebrow: "Welcome Home",
-  heroHeadline: "Berea Seventh-day Adventist Church",
+  heroHeadline: "Berea International Seventh-day Adventist Church",
   heroSubtitle:
     "A place to worship, grow, and belong. Join our family as we discover freedom, healing, and hope in Jesus Christ together.",
 };

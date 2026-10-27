@@ -1,7 +1,9 @@
 import { Hero } from "@/components/Hero";
 import { CardGrid } from "@/components/CardGrid";
 import { getSections, getSiteSettings } from "@/lib/content";
-import { urlFor } from "@/sanity/image";
+
+// Re-render at most once a minute so content edits show up without a redeploy.
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [sections, siteSettings] = await Promise.all([
@@ -9,17 +11,13 @@ export default async function HomePage() {
     getSiteSettings(),
   ]);
 
-  const heroImageUrl = siteSettings.heroImage?.asset
-    ? urlFor(siteSettings.heroImage).width(1920).height(1080).fit("crop").url()
-    : undefined;
-
   return (
     <>
       <Hero
         eyebrow={siteSettings.heroEyebrow}
         headline={siteSettings.heroHeadline}
         subtitle={siteSettings.heroSubtitle}
-        imageUrl={heroImageUrl}
+        imageUrl={siteSettings.heroImageUrl}
       />
 
       <section className="mx-auto max-w-6xl px-6 py-20">

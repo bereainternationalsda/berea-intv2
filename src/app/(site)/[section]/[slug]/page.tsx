@@ -1,25 +1,36 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getMinistriesForSection } from "@/lib/content";
+import { getMinistriesForSection, getSections } from "@/lib/content";
 
+// Re-render at most once a minute so content edits show up without a redeploy.
+export const revalidate = 60;
+
+// Detail page for any card nested under a section, e.g.
+// /departments/pathfinders or /services/adventist-community-service.
 export default async function MinistryPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ section: string; slug: string }>;
 }) {
-  const { slug } = await params;
-  const ministries = await getMinistriesForSection("departments");
-  const ministry = ministries.find((item) => item.slug === slug);
+  const { section, slug } = await params;
+  const [sections, ministries] = await Promise.all([
+    getSections(),
+    getMinistriesForSection(section),
+  ]);
 
+  const ministry = ministries.find((item) => item.slug === slug);
   if (!ministry) notFound();
+
+  const sectionTitle =
+    sections.find((item) => item.slug === section)?.title ?? section;
 
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
       <Link
-        href="/departments"
+        href={`/${section}`}
         className="text-sm font-semibold text-navy-600 hover:text-navy-800"
       >
-        &larr; Back to Departments
+        &larr; Back to {sectionTitle}
       </Link>
 
       <div className="mt-6 flex items-center gap-4">

@@ -14,9 +14,9 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Berea Seventh-day Adventist Church",
+  title: "Berea International SDA Church",
   description:
-    "Welcome to Berea Seventh-day Adventist Church — join us for worship, ministry, and community.",
+    "Welcome to Berea International Seventh-day Adventist Church — join us for worship, ministry, and community.",
 };
 
 export default function RootLayout({
