@@ -20,6 +20,26 @@ export function Footer() {
           A community devoted to helping people understand the Bible to find
           freedom, healing, and hope in Jesus Christ.
         </p>
+        <address className="mt-6 not-italic">
+          <p className="text-xs font-bold uppercase tracking-wide text-white">
+            Find us
+          </p>
+          <p className="mt-2 text-navy-100/80">
+            146 De Boulevard Road
+            <br />
+            Silverton, Pretoria
+            <br />
+            0184, South Africa
+          </p>
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=146+De+Boulevard+Road,+Silverton,+Pretoria,+0184,+South+Africa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block font-semibold text-white hover:text-navy-100"
+          >
+            Get directions ↗
+          </a>
+        </address>
         <p className="mt-6 text-xs text-navy-100/60">
           &copy; {new Date().getFullYear()} Berea International Seventh-day
           Adventist Church. All rights reserved.
