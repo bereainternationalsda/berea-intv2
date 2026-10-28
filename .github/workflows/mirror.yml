@@ -1,0 +1,46 @@
+name: Mirror to the church's repository
+
+# Copies every push to main on innocentmpeta/berea-int into
+# bereainternationalsda/berea-intv2, which is the repository Vercel builds from.
+# Uses a write-enabled deploy key on the church repo (secret MIRROR_SSH_KEY).
+# A normal fast-forward push: it never forces, so if someone commits directly
+# to the church repo this run fails visibly instead of overwriting their work.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # The church repo receives this file too; it must not try to mirror itself.
+    if: github.repository == 'innocentmpeta/berea-int'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push main to the church repository
+        env:
+          MIRROR_SSH_KEY: ${{ secrets.MIRROR_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MIRROR_SSH_KEY" ]; then
+            echo "The MIRROR_SSH_KEY secret is missing." >&2
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$MIRROR_SSH_KEY" > ~/.ssh/mirror_key
+          chmod 600 ~/.ssh/mirror_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror_key -o IdentitiesOnly=yes" \
+            git push git@github.com:bereainternationalsda/berea-intv2.git "${GITHUB_SHA}:refs/heads/main"
