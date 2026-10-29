@@ -32,6 +32,11 @@ export default async function AdminDashboardPage() {
       body: `The ${ministries.length} cards inside each section, like Pathfinders and Adventurers.`,
     },
     {
+      href: "/admin/resources",
+      title: "Resources",
+      body: "Downloads and links, grouped into categories like Sermons and Training material.",
+    },
+    {
       href: "/admin/events",
       title: "Events",
       body:
@@ -48,7 +53,7 @@ export default async function AdminDashboardPage() {
         description="Changes go live on the website within a few seconds of saving."
       />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {tiles.map((tile) => (
           <Link
             key={tile.href}

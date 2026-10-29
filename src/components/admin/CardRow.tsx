@@ -6,10 +6,12 @@ export function CardRow({
   card,
   href,
   subtitle,
+  actionLabel = "Edit",
 }: {
   card: AdminCard;
   href: string;
   subtitle?: string;
+  actionLabel?: string;
 }) {
   return (
     <li>
@@ -37,7 +39,7 @@ export function CardRow({
             {subtitle ?? `/${card.slug}`}
           </p>
         </div>
-        <span className="text-sm font-semibold text-navy-600">Edit &rarr;</span>
+        <span className="text-sm font-semibold text-navy-600">{actionLabel} &rarr;</span>
       </Link>
     </li>
   );

@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Cloud Storage rules for the Berea website.
+//
+// Everything is closed by default. Photos are written by the website's server
+// (the Admin SDK ignores these rules) and are shown through their download links.
+//
+// The one thing the browser may do directly is upload (or clean up) a resource
+// file, because a PowerPoint is too big to send through the website's server.
+// That needs a short-lived token from /api/admin/upload-token, which only a signed
+// in content manager can get. The token carries `uploader` and an `uploadUntil`
+// time (one hour ahead). Nobody can read, list or overwrite existing files here.
+//
+// To change the size limit, change it here AND in MAX_FILE_BYTES in
+// src/lib/resources/files.ts (50 MB = 52428800 bytes).
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /resources/{category}/{fileName} {
+      allow create: if request.auth != null
+                    && request.auth.token.uploader == true
+                    && request.auth.token.uploadUntil * 1000 > request.time.toMillis()
+                    && request.resource.size > 0
+                    && request.resource.size <= 52428800;
+
+      allow delete: if request.auth != null
+                    && request.auth.token.uploader == true
+                    && request.auth.token.uploadUntil * 1000 > request.time.toMillis();
+    }
+  }
+}

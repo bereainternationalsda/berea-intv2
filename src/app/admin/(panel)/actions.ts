@@ -5,10 +5,15 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireAdmin, SESSION_COOKIE } from "@/lib/admin/auth";
+import { RESOURCES_SECTION } from "@/lib/admin/data";
 import {
+  deleteResourceFile,
   deleteStoredImage,
   ImageUploadError,
+  publishUploadedFile,
+  ResourceFileError,
   uploadImage,
+  type PublishedFile,
 } from "@/lib/admin/storage";
 import type { FormState } from "@/lib/admin/types";
 import { SLUG_RE, slugify } from "@/lib/admin/validation";
@@ -19,6 +24,7 @@ import {
 } from "@/lib/events/dates";
 import { REGISTRATION_TYPES } from "@/lib/events/registration";
 import { getDb } from "@/lib/firebase/admin";
+import { displayFileName, normaliseLinkUrl } from "@/lib/resources/files";
 
 // Every action starts with requireAdmin(): Server Actions are public POST
 // endpoints, so the page that rendered the form proves nothing.
@@ -312,7 +318,14 @@ export async function saveMinistry(
   await deleteStoredImage(change.previous);
   revalidatePath("/", "layout");
 
-  if (isCreate) redirect("/admin/ministries");
+  if (isCreate) {
+    // A new resources category is empty: go straight to adding things to it.
+    redirect(
+      sectionSlug === RESOURCES_SECTION
+        ? `/admin/resources/${slug}`
+        : "/admin/ministries",
+    );
+  }
   return { status: "success", message: `"${title}" saved.`, at: Date.now() };
 }
 
@@ -326,7 +339,15 @@ export async function deleteMinistry(formData: FormData): Promise<void> {
   const snapshot = await ref.get();
   if (snapshot.exists) {
     const imageUrl = snapshot.get("imageUrl") as string | undefined;
-    await ref.delete();
+
+    // A resources category owns its files and links: remove those with it.
+    const resources = await ref.collection("resources").get();
+    const filePaths = resources.docs
+      .map((doc) => doc.get("storagePath"))
+      .filter((path): path is string => typeof path === "string");
+
+    await getDb().recursiveDelete(ref);
+    await Promise.all(filePaths.map((path) => deleteResourceFile(path)));
     await deleteStoredImage(imageUrl);
     revalidatePath("/", "layout");
   }
@@ -515,6 +536,162 @@ export async function deleteEvent(formData: FormData): Promise<void> {
   }
 
   redirect("/admin/events");
+}
+
+// ---- resources (files and links inside a resource category) ---------------
+
+const RESOURCE_ID_RE = /^[A-Za-z0-9]{20}$/;
+
+function resourcesOf(category: string) {
+  return getDb().collection("ministries").doc(category).collection("resources");
+}
+
+/** Resources only live in categories that sit under the Resources section. */
+async function isResourceCategory(category: string): Promise<boolean> {
+  if (!SLUG_RE.test(category)) return false;
+  const doc = await getDb().collection("ministries").doc(category).get();
+  return doc.exists && doc.get("sectionSlug") === RESOURCES_SECTION;
+}
+
+export async function saveResource(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  await requireAdmin();
+
+  const isCreate = text(formData, "mode") === "create";
+  const category = text(formData, "category");
+  const id = text(formData, "id");
+  const title = text(formData, "title");
+  const description = text(formData, "description").replace(/\r\n/g, "\n");
+  const kind = text(formData, "kind") === "link" ? "link" : "file";
+  const linkInput = text(formData, "linkUrl");
+  const storagePath = text(formData, "storagePath");
+  const fileName = text(formData, "fileName");
+  const orderInput = text(formData, "order");
+
+  if (!(await isResourceCategory(category))) {
+    return failure("That category doesn't exist.");
+  }
+
+  let existing: FirebaseFirestore.DocumentSnapshot | null = null;
+  if (!isCreate) {
+    if (!RESOURCE_ID_RE.test(id)) return failure("That item doesn't exist.");
+    existing = await resourcesOf(category).doc(id).get();
+    if (!existing.exists) return failure("That item no longer exists.");
+  }
+  const existingFile =
+    existing?.get("kind") !== "link" && typeof existing?.get("url") === "string";
+
+  const errors: FieldErrors = {};
+  checkText(errors, "title", title, "Title", { required: true, max: 120 });
+  checkText(errors, "description", description, "Description", { max: 400 });
+
+  let order: number | undefined;
+  if (orderInput !== "") {
+    const value = Number(orderInput);
+    if (!Number.isInteger(value) || value < 0 || value > 999) {
+      errors.order = "Position must be a whole number between 0 and 999, or left blank.";
+    } else {
+      order = value;
+    }
+  }
+
+  let linkUrl: string | null = null;
+  if (kind === "link") {
+    linkUrl = normaliseLinkUrl(linkInput);
+    if (!linkUrl) {
+      errors.linkUrl = "Enter a full web address starting with https://";
+    }
+  } else if (!storagePath && !existingFile) {
+    errors.file = "Choose a file to upload.";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return failure("Please fix the highlighted fields.", errors);
+  }
+
+  let published: PublishedFile | undefined;
+  if (kind === "file" && storagePath) {
+    try {
+      published = await publishUploadedFile(storagePath, category, fileName);
+    } catch (error) {
+      if (error instanceof ResourceFileError) {
+        return failure(error.message, { file: error.message });
+      }
+      console.error("publishUploadedFile failed:", error);
+      return failure("The file couldn't be processed. Please try again.");
+    }
+  }
+
+  const ref = isCreate ? resourcesOf(category).doc() : resourcesOf(category).doc(id);
+  const now = Date.now();
+
+  // Fields that are optional or belong to only one kind are removed when they no
+  // longer apply. create() rejects FieldValue.delete(), so creates leave them out.
+  const drop = isCreate ? undefined : FieldValue.delete();
+  const data: Record<string, unknown> = {
+    title,
+    kind,
+    updatedAt: now,
+    ...(description ? { description } : drop ? { description: drop } : {}),
+    ...(order !== undefined ? { order } : drop ? { order: drop } : {}),
+  };
+
+  if (kind === "link") {
+    data.url = linkUrl;
+    if (drop) {
+      Object.assign(data, { storagePath: drop, fileName: drop, fileType: drop, fileSize: drop });
+    }
+  } else if (published) {
+    Object.assign(data, {
+      url: published.url,
+      storagePath: published.path,
+      fileName: displayFileName(fileName) || published.path.split("/").pop(),
+      fileType: published.ext,
+      fileSize: published.size,
+    });
+  }
+
+  try {
+    if (isCreate) await ref.create({ ...data, createdAt: now });
+    else await ref.set(data, { merge: true });
+  } catch (error) {
+    console.error("saveResource failed:", error);
+    if (published) await deleteResourceFile(published.path);
+    return failure(SAVE_FAILED);
+  }
+
+  // The file this item used to have is no longer referenced.
+  const previousPath = existing?.get("storagePath");
+  if (typeof previousPath === "string" && (published || kind === "link")) {
+    await deleteResourceFile(previousPath);
+  }
+
+  revalidatePath("/", "layout");
+
+  if (isCreate) redirect(`/admin/resources/${category}`);
+  return { status: "success", message: `"${title}" saved.`, at: Date.now() };
+}
+
+export async function deleteResource(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const category = text(formData, "category");
+  const id = text(formData, "id");
+  if (!SLUG_RE.test(category)) redirect("/admin/resources");
+  if (!RESOURCE_ID_RE.test(id)) redirect(`/admin/resources/${category}`);
+
+  const ref = resourcesOf(category).doc(id);
+  const snapshot = await ref.get();
+  if (snapshot.exists) {
+    const path = snapshot.get("storagePath");
+    await ref.delete();
+    if (typeof path === "string") await deleteResourceFile(path);
+    revalidatePath("/", "layout");
+  }
+
+  redirect(`/admin/resources/${category}`);
 }
 
 // ---- registrations ---------------------------------------------------------

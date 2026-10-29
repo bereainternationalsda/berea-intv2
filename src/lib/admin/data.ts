@@ -13,6 +13,8 @@ import {
   type StoredRegistration,
 } from "@/lib/events/registration";
 import type { EventItem } from "@/lib/events/types";
+import { toResourceItem } from "@/lib/resources/content";
+import { sortResources, type ResourceItem } from "@/lib/resources/files";
 
 // Data access layer for /admin. Each function re-checks the session itself
 // rather than trusting the page that called it.
@@ -144,4 +146,59 @@ export async function countAdminRegistrations(eventSlug: string): Promise<number
     .count()
     .get();
   return result.data().count;
+}
+
+// ---- resources (files and links inside a resource category) ----------------
+
+export const RESOURCES_SECTION = "resources";
+
+/** An item as the admin sees it: also knows where its file lives in Storage. */
+export type AdminResource = ResourceItem & { storagePath?: string };
+
+function resourcesOf(category: string) {
+  return getDb().collection("ministries").doc(category).collection("resources");
+}
+
+/** The cards under the Resources section, each with how many items it holds. */
+export async function getAdminResourceCategories(): Promise<
+  (AdminCard & { resourceCount: number })[]
+> {
+  await requireAdmin();
+  const snapshot = await getDb()
+    .collection("ministries")
+    .where("sectionSlug", "==", RESOURCES_SECTION)
+    .get();
+
+  const categories = snapshot.docs.map(toAdminCard).sort(byOrder);
+  return Promise.all(
+    categories.map(async (category) => ({
+      ...category,
+      resourceCount: (await resourcesOf(category.slug).count().get()).data().count,
+    })),
+  );
+}
+
+export async function getAdminResources(category: string): Promise<AdminResource[]> {
+  await requireAdmin();
+  if (!SLUG_RE.test(category)) return [];
+  const snapshot = await resourcesOf(category).get();
+
+  const items: AdminResource[] = [];
+  for (const doc of snapshot.docs) {
+    const item = toResourceItem(doc);
+    if (item) items.push({ ...item, storagePath: doc.get("storagePath") || undefined });
+  }
+  return sortResources(items);
+}
+
+export async function getAdminResource(
+  category: string,
+  id: string,
+): Promise<AdminResource | null> {
+  await requireAdmin();
+  if (!SLUG_RE.test(category) || !/^[A-Za-z0-9]{20}$/.test(id)) return null;
+  const doc = await resourcesOf(category).doc(id).get();
+  if (!doc.exists) return null;
+  const item = toResourceItem(doc);
+  return item ? { ...item, storagePath: doc.get("storagePath") || undefined } : null;
 }

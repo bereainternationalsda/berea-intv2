@@ -47,12 +47,54 @@ Go to **`/admin`** and sign in with an allowed Google account.
 | Site settings | Homepage hero photo, small heading, main heading, subtitle |
 | Section cards | The big homepage cards (Departments, Services, Resources) |
 | Ministry cards | Cards inside each section (Pathfinders, Adventurers, …): add, edit, reorder, move between sections, delete |
+| Resources | Categories of downloads and links (Sermons, Training material, …) and the files and links inside each one |
 | Events | Camps, trainings and other programs: poster, dates, venue, costs, contact, and when to show them |
 
 Changes appear on the live site within seconds. Photos are resized in the browser
 before upload (max 5 MB; JPG, PNG or WebP).
 
 To give someone access, add their Google email to `ADMIN_EMAILS` and redeploy.
+
+### Resources
+
+The Resources page shows a card for each **category** (Sermons, Training material,
+SOP books, Other links, …). Opening a card lists everything in it, each with one
+button: *Open PDF*, *Download* or *Open link*.
+
+In **/admin → Resources**:
+1. **Add a category**: a title, a short description and an image for its card.
+2. Open the category and **Add a resource**: either **a file** (PDF, PowerPoint,
+   Word, Excel or MP3, up to 50 MB) or **a link** (any `https://` address).
+3. Order: new items show newest first. Give an item a **Position** number to pin it
+   above the rest (1 is the very top).
+
+Deleting a category deletes its files and links with it. Deleting one resource also
+deletes its uploaded file.
+
+**How uploads work (and the one-time setup).** A PowerPoint is bigger than the
+website's server accepts in a single request, so the browser uploads files straight
+to Firebase Storage. The server first hands a signed-in content manager a short-lived
+token (`/api/admin/upload-token`, valid for one hour), and Storage checks it against
+the rules in [`storage.rules`](storage.rules). You must publish those rules once:
+
+1. Firebase console → **Storage** → **Rules**.
+2. Replace everything with the contents of `storage.rules`, then **Publish**.
+
+Without them uploads fail with a message saying so, and links still work. Nothing is
+opened up by these rules: nobody can read, list or overwrite existing files, and only
+`resources/<category>/<file>` can be created, and only with a valid token.
+
+What the server re-checks after an upload, trusting nothing from the browser: the
+file's folder and name pattern, its real size (50 MB cap, also in the rules), and its
+first bytes, so a program renamed `talk.pdf` is rejected and deleted. It sets the
+content type and download link itself. Allowed types and the size cap live in
+`src/lib/resources/files.ts`; if you change the cap, change it in `storage.rules`
+too. Links must be `http(s)`; `javascript:` and similar addresses are refused.
+
+Files are public to anyone who has their link, and that includes anyone the website
+shows the link to. Don't upload anything confidential here. Storage download traffic
+is billed by Google beyond its free allowance, so very large, popular files can cost
+a little.
 
 ### Events
 
@@ -144,6 +186,7 @@ their `+` and leading zeros.
 | `sections/{slug}` | `title`, `description`, `icon`, `imageUrl`, `order` |
 | `ministries/{slug}` | `title`, `slug`, `description`, `icon`, `imageUrl`, `order`, `sectionSlug` |
 | `events/{slug}` | `title`, `slug`, `summary`, `description`, `imageUrl`, `startDate`, `startTime`, `endDate`, `endTime`, `venue`, `costs`, `contactName`, `contactPhone`, `published`, `showFrom`, `showUntil`, `registrationEnabled`, `registrationTypes`, `registrationDeadline` |
+| `ministries/{category}/resources/{id}` | `title`, `description`, `kind` (`file` or `link`), `url`, `storagePath`, `fileName`, `fileType`, `fileSize`, `order` (optional pin position), `createdAt`, `updatedAt` |
 | `events/{slug}/registrations/{BRN-XXXXXX}` | `type`, `groupName`, `contactName`, `contactPhone`, `contactEmail`, `emergencyName`, `emergencyPhone`, `attendees[]` (`name`, `category`, `age`, `ageRange`, `dietary`), `peopleCount`, `adultCount`, `childCount`, `paid`, `consent`, `privacyNoticeVersion`, `createdAt` |
 | `rateLimits/{…}` | `count`, `expireAt` (short-lived spam counters) |
 
@@ -160,6 +203,7 @@ src/
       departments/ services/ resources/   # section listing pages
       [section]/[slug]/        # card detail pages, e.g. /departments/pathfinders
       events/ events/[slug]/   # event list and event pages
+      resources/[slug]/        # a resource category and its files and links
     admin/
       login/                   # Google sign-in
       (panel)/                 # signed-in screens + Server Actions (actions.ts)
@@ -171,6 +215,7 @@ src/
     firebase/                # admin.ts (server), client.ts (browser sign-in)
     admin/                   # auth, data access, storage, validation
     events/                  # dates, registration rules, Excel import/export (all tested)
+    resources/               # file/link rules, upload checks, public reads (tested)
     site-url.ts              # public address, for share previews
 ```
 
